@@ -1258,8 +1258,21 @@
       addLog("系統啟動：電子寵物律斗已上線，等待你的操作。", true);
       addLog("提示：右側有拖延小遊戲，下面還有學習番茄鐘，可以一起折磨自己。");
     }
-
-    init();
   </script>
+
+<audio id="bgm" src="music/bgm.mp3" autoplay loop></audio>
+
+<script>
+// 🔊 统一处理自动播放（避免浏览器拦截）
+document.addEventListener("click", () => {
+  const audio = document.getElementById("bgm");
+  audio.muted = false;
+  audio.play();
+}, { once: true });
+</script>
+
+
 </body>
+    init();
+ 
 </html>
