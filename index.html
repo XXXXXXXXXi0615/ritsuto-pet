@@ -523,7 +523,17 @@
       color: #9ca3af;
       text-align: right;
     }
-  </style>
+ .loading-bar {
+  width: 0%;
+  height: 8px;
+  background: #a78bfa;
+  animation: loadingProgress 3s linear infinite;
+}
+
+@keyframes loadingProgress {
+  from { width: 0%; }
+  to { width: 100%; }
+}
 </head>
 <body class="theme-default">
   <div class="app">
@@ -539,13 +549,24 @@
                  maxlength="12" />
         </label>
         <label>
-          主題：
-          <select id="themeSelect" class="select-input">
-            <option value="default">柔和預設</option>
-            <option value="twilight">暮光暗紫</option>
-            <option value="sakura">櫻粉夢境</option>
-          </select>
-        </label>
+         主題：
+
+<label>
+  背景圖片：
+  <input id="customBgInput" class="file-input" type="file" accept="image/*" />
+</label>
+
+<label>
+  主題色：
+  <input id="customColorInput" class="color-input" type="color" value="#ffffff" />
+</label>
+
+<select id="themeSelect" class="select-input">
+  <option value="default">柔和預設</option>
+  <option value="twilight">暮光暗紫</option>
+  <option value="sakura">櫻粉夢境</option>
+  <option value="custom">自訂主題</option>
+</select>
       </div>
     </header>
 
