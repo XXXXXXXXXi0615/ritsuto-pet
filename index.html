@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>電子寵物・實原律斗版</title>
+  <title>電子寵物・實原律斗</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     * {
@@ -1260,18 +1260,24 @@
     }
   </script>
 
-<audio id="bgm" src="music/bgm.mp3" autoplay loop></audio>
+<audio id="bgm" src="背景音乐.mp3" autoplay loop></audio>
 
 <script>
-// 🔊 统一处理自动播放（避免浏览器拦截）
+// 🔊 避免浏览器阻挡自动播放 —— 第一次点击才启动
 document.addEventListener("click", () => {
   const audio = document.getElementById("bgm");
   audio.muted = false;
-  audio.play();
+  audio.play().catch(err => console.log("播放被阻止：", err));
 }, { once: true });
 </script>
 
-
+<!-- Boot / Loading Screen -->
+<div id="bootScreen" style="position:fixed; inset:0; background:#0c1024; display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:9999; color:#e5e5ff; font-size:1rem;">
+  <div style="margin-bottom:12px;">律斗系統啟動中…</div>
+  <div class="loading-bar" style="width:220px; height:6px; background:rgba(255,255,255,0.15); border-radius:4px; overflow:hidden;">
+    <span style="display:block; height:100%; width:0%; background:linear-gradient(90deg,#6366f1,#a855f7); animation:loadingProgress 2s linear forwards;"></span>
+  </div>
+</div>
 </body>
     init();
  
