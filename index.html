@@ -2,22 +2,46 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>電子寵物・實原律斗</title>
+  <title>实原律斗</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text",
-        "Microsoft JhengHei", system-ui, sans-serif;
-    }
+   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text",
+"Microsoft JhengHei", system-ui, sans-serif;
+}
 
-    body {
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+/* Hero Section Style */
+.hero {
+  text-align: center;
+  padding: 60px 20px 40px;
+  background: linear-gradient(135deg, rgba(166,131,255,0.35), rgba(99,102,241,0.35));
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(255,255,255,0.5);
+  animation: fadeDown 1s ease forwards;
+}
+.hero h1 {
+  font-size: 2rem;
+  letter-spacing: 0.08em;
+  margin-bottom: 10px;
+  color: #4b0082;
+}
+.hero p {
+  font-size: 0.9rem;
+  color: #555;
+}
+@keyframes fadeDown {
+  from { opacity: 0; transform: translateY(-15px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+body {
+min-height: 100vh;
+display: flex;
+align-items: center;
+justify-content: center;
       background: radial-gradient(circle at top, #f6ebff 0, #e5d8ff 40%, #d9e2ff 100%);
       color: #333;
     }
@@ -536,12 +560,16 @@
 }
 </head>
 <body class="theme-default">
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <h1>電子寵物・實原律斗</h1>
+    <p>你的專屬精神生物，正在啟動……</p>
+  </section>
+
   <div class="app">
-    <header class="app-header">
-      <div class="title-block">
-        <h1>電子寵物・律斗 ^𖥦^</h1>
-        <span>你的小型資料庫生物，會吃、會洗澡、會玩、也會被迫學習。</span>
-      </div>
+    <!-- 原本的介面內容 -->
+
       <div class="control-row">
         <label>
           名稱：
