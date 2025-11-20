@@ -2,280 +2,508 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>实原律斗</title>
+  <title>实原律斗 | 虚拟伴侣</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text",
-      "Microsoft JhengHei", system-ui, sans-serif;
+    :root {
+      --primary: #6366f1;
+      --secondary: #a855f7;
+      --bg-gradient: radial-gradient(circle at top, #f6ebff 0, #e5d8ff 40%, #d9e2ff 100%);
+      --glass: rgba(255, 255, 255, 0.85);
+      --glass-border: rgba(255, 255, 255, 0.6);
+      --text-main: #2d2d3a;
+      --text-sub: #666;
     }
 
-    /* Hero Section */
-    .hero {
-      text-align: center;
-      padding: 60px 20px 40px;
-      background: linear-gradient(135deg, rgba(166,131,255,0.35), rgba(99,102,241,0.35));
-      backdrop-filter: blur(8px);
-      border-bottom: 1px solid rgba(255,255,255,0.5);
-      animation: fadeDown 1s ease forwards;
-    }
-
-    .hero h1 {
-      font-size: 2rem;
-      letter-spacing: 0.08em;
-      margin-bottom: 10px;
-      color: #4b0082;
-    }
-
-    .hero p {
-      font-size: 0.9rem;
-      color: #555;
-    }
-
-    @keyframes fadeDown {
-      from { opacity: 0; transform: translateY(-15px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: "Microsoft JhengHei", system-ui, sans-serif; }
 
     body {
       min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
-      background: radial-gradient(circle at top, #f6ebff 0, #e5d8ff 40%, #d9e2ff 100%);
-      color: #333;
+      background: var(--bg-gradient);
+      color: var(--text-main);
+      transition: background 0.5s ease;
+      background-attachment: fixed;
+      background-size: cover;
+      background-position: center;
     }
 
+    /* App Container */
     .app {
-      width: 100%;
-      max-width: 960px;
-      background: rgba(255, 255, 255, 0.9);
+      width: 95%;
+      max-width: 600px;
+      background: var(--glass);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--glass-border);
       border-radius: 24px;
-      box-shadow: 0 20px 45px rgba(70, 50, 120, 0.18);
-      padding: 20px 22px 18px;
-      backdrop-filter: blur(12px);
-    }
-
-    @media (min-width: 768px) {
-      .app {
-        padding: 24px 28px 20px;
-      }
-    }
-    // ====== 存檔槽切換 ======
-    const petTabButtons = document.querySelectorAll(".pet-tab");
-
-    function updateSlotTabLabels() {
-      petTabButtons.forEach((btn) => {
-        const index = Number(btn.getAttribute("data-slot"));
-        const slot = petSlots[index];
-        const baseName = slot.name || "存檔 " + (index + 1);
-        btn.childNodes[0].nodeValue = baseName + " ";
-      });
-    }
-
-    function switchSlot(index) {
-      if (index === currentSlotIndex) return;
-      // 把當前狀態存起來
-      copyState(petState, petSlots[currentSlotIndex].state);
-
-      currentSlotIndex = index;
-      const slot = petSlots[currentSlotIndex];
-
-      // 載入新保存的狀態
-      copyState(slot.state, petState);
-
-      refreshNameDisplay();
-
-      // 更新 tab 樣式
-      petTabButtons.forEach((btn) => {
-        if (Number(btn.getAttribute("data-slot")) === currentSlotIndex) {
-          btn.classList.add("active");
-        } else {
-          btn.classList.remove("active");
-        }
-      });
-
-      updateUI();
-      addLog("已切換到「" + (slot.name || "存檔 " + (currentSlotIndex + 1)) + "」。", true);
-    }
-
-    petTabButtons.forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const index = Number(btn.getAttribute("data-slot"));
-        switchSlot(index);
-      });
-    });
-
-    // ====== 綁定按鈕事件 ======
-    const actionButtons = document.querySelectorAll(".action-btn[data-action]");
-    actionButtons.forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const actionKey = btn.getAttribute("data-action");
-        applyAction(actionKey);
-      });
-    });
-
-    // ====== 初始化 ======
-    function init() {
-      copyState(petSlots[0].state, petState);
-      petSlots[0].name = "律斗-1";
-      refreshNameDisplay();
-      updateUI();
-      updateFocusDisplay();
-      updateStudyDisplay();
-      updateSlotTabLabels();
-      addLog("系統啟動：電子寵物律斗已上線，等待你的操作。", true);
-      addLog("提示：右側有拖延小遊戲，下面還有番茄鐘，可以一起折磨自己。");
-    }
-
-    init();
-  </script>
-
-  <audio id="bgm" src="背景音乐.mp3" autoplay loop muted></audio>
-
-  <script>
-    // 🔊 防止瀏覽器阻擋音樂，第一次點擊才啟動
-    document.addEventListener(
-      "click",
-      () => {
-        const audio = document.getElementById("bgm");
-        audio.muted = false;
-        audio.play().catch((e) => console.log("播放被阻止：", e));
-      },
-      { once: true }
-    );
-  </script>
-
-  <!-- 啟動畫面 -->
-  <div
-    id="bootScreen"
-    style="
-      position: fixed;
-      inset: 0;
-      background: #0c1024;
+      box-shadow: 0 20px 50px rgba(70, 50, 120, 0.15);
+      padding: 25px;
       display: flex;
       flex-direction: column;
+      gap: 20px;
+      animation: popIn 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    @keyframes popIn {
+      from { opacity: 0; transform: scale(0.95) translateY(20px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    /* Header & Slots */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 15px;
+      border-bottom: 2px dashed rgba(99, 102, 241, 0.2);
+    }
+    .title { font-size: 1.4rem; font-weight: 800; color: #4b0082; letter-spacing: 1px; }
+    
+    .slot-container { display: flex; gap: 8px; background: rgba(255,255,255,0.5); padding: 4px; border-radius: 12px; }
+    .pet-tab {
+      border: none; background: transparent; padding: 6px 12px;
+      border-radius: 8px; cursor: pointer; font-size: 0.85rem; color: #666;
+      transition: all 0.2s;
+    }
+    .pet-tab.active { background: white; color: var(--primary); box-shadow: 0 2px 8px rgba(0,0,0,0.05); font-weight: bold; }
+
+    /* Pet Display Area */
+    .pet-display {
+      display: flex;
       align-items: center;
       justify-content: center;
-      z-index: 9999;
-      color: #e5e5ff;
-      font-size: 1rem;
-    "
-  >
-    <div style="margin-bottom: 12px">律斗系統啟動中…</div>
+      flex-direction: column;
+      padding: 20px 0;
+      position: relative;
+    }
+    
+    .avatar-wrapper {
+      width: 140px; height: 140px;
+      display: flex; align-items: center; justify-content: center;
+      position: relative;
+      cursor: pointer;
+    }
+    
+    /* 呼吸动画 */
+    .avatar-animate { animation: float 3s ease-in-out infinite; }
+    @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
 
-    <div
-      style="
-        width: 220px;
-        height: 6px;
-        background: rgba(255, 255, 255, 0.15);
-        border-radius: 4px;
-        overflow: hidden;
-      "
-    >
-      <span
-        style="
-          display: block;
-          height: 100%;
-          width: 0%;
-          background: linear-gradient(90deg, #6366f1, #a855f7);
-          animation: loadingProgress 2.2s linear forwards;
-        "
-      ></span>
+    .kaomoji {
+      font-size: 3.5rem; font-weight: bold; color: #4b0082;
+      text-shadow: 0 4px 10px rgba(99, 102, 241, 0.2);
+    }
+    
+    .speech-bubble {
+      background: white; padding: 8px 16px; border-radius: 20px 20px 20px 0;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+      font-size: 0.9rem; color: #555; margin-bottom: 15px;
+      opacity: 0; transform: translateY(10px);
+      transition: all 0.3s;
+    }
+    .speech-bubble.show { opacity: 1; transform: translateY(0); }
+
+    /* Stats Bars */
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; width: 100%; }
+    .stat-item { background: rgba(255,255,255,0.5); padding: 10px; border-radius: 12px; }
+    .stat-label { font-size: 0.8rem; margin-bottom: 6px; color: #666; display: flex; justify-content: space-between; }
+    
+    .progress-bg { height: 8px; background: #eee; border-radius: 4px; overflow: hidden; }
+    .progress-fill { height: 100%; width: 50%; border-radius: 4px; transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+    
+    /* Colors for stats */
+    .fill-hp { background: linear-gradient(90deg, #ff9a9e, #fecfef); box-shadow: 0 0 10px rgba(255, 154, 158, 0.4); }
+    .fill-mood { background: linear-gradient(90deg, #a18cd1, #fbc2eb); box-shadow: 0 0 10px rgba(161, 140, 209, 0.4); }
+    .fill-food { background: linear-gradient(90deg, #84fab0, #8fd3f4); box-shadow: 0 0 10px rgba(132, 250, 176, 0.4); }
+    .fill-energy { background: linear-gradient(90deg, #fccb90, #d57eeb); box-shadow: 0 0 10px rgba(252, 203, 144, 0.4); }
+
+    /* Actions */
+    .actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px; }
+    .action-btn {
+      border: none; background: white; padding: 12px 0; border-radius: 12px;
+      font-size: 1.2rem; cursor: pointer; transition: all 0.2s;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.05); color: var(--primary);
+    }
+    .action-btn:hover { transform: translateY(-3px); box-shadow: 0 8px 15px rgba(99, 102, 241, 0.2); background: #fbfaff; }
+    .action-btn:active { transform: scale(0.95); }
+    .btn-label { display: block; font-size: 0.75rem; margin-top: 4px; color: #888; }
+
+    /* Log */
+    .log-area {
+      height: 100px; background: rgba(0,0,0,0.03); border-radius: 12px;
+      padding: 10px; overflow-y: auto; font-size: 0.85rem; color: #666;
+      border: 1px solid rgba(0,0,0,0.05);
+    }
+    .log-entry { margin-bottom: 6px; padding-left: 10px; border-left: 3px solid var(--primary); animation: slideIn 0.3s ease; }
+    @keyframes slideIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
+
+    /* Custom Settings */
+    .settings-area { margin-top: 10px; text-align: center; }
+    .custom-btn-small {
+      background: transparent; border: 1px solid #ccc; padding: 5px 10px;
+      border-radius: 20px; font-size: 0.8rem; color: #666; cursor: pointer;
+    }
+    .custom-btn-small:hover { background: white; color: var(--primary); border-color: var(--primary); }
+
+    /* Boot Screen */
+    #bootScreen {
+      position: fixed; inset: 0; background: #0c1024; z-index: 9999;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      color: #e5e5ff; font-size: 1rem;
+    }
+  </style>
+</head>
+<body>
+
+  <audio id="bgm" src="" loop></audio>
+
+  <div id="bootScreen">
+    <div style="margin-bottom: 15px; font-size: 1.2rem; letter-spacing: 2px;">RITSUTO SYSTEM</div>
+    <div style="width: 220px; height: 6px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden;">
+      <span style="display: block; height: 100%; width: 0%; background: linear-gradient(90deg, #6366f1, #a855f7); animation: loadingProgress 2s linear forwards;"></span>
+    </div>
+    <div style="margin-top: 10px; font-size: 0.8rem; opacity: 0.6;">Initializing Personality Modules...</div>
+  </div>
+
+  <div class="app">
+    <div class="header">
+      <div class="title">实原律斗</div>
+      <div class="slot-container">
+        <button class="pet-tab active" data-slot="0">槽位1</button>
+        <button class="pet-tab" data-slot="1">槽位2</button>
+        <button class="pet-tab" data-slot="2">槽位3</button>
+      </div>
+    </div>
+
+    <div class="pet-display">
+      <div class="speech-bubble" id="speechBubble">今天感觉不错哦~ (◕‿◕)</div>
+      <div class="avatar-wrapper avatar-animate" id="petAvatar" title="点击更换自定义头像">
+        <div id="petFace" class="kaomoji">(◕‿◕✿)</div>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-item">
+        <div class="stat-label"><span>心情 (Mood)</span><span id="val-mood">100%</span></div>
+        <div class="progress-bg"><div class="progress-fill fill-mood" id="bar-mood" style="width: 100%"></div></div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label"><span>饱食 (Hunger)</span><span id="val-hunger">0%</span></div>
+        <div class="progress-bg"><div class="progress-fill fill-food" id="bar-hunger" style="width: 0%"></div></div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label"><span>精力 (Energy)</span><span id="val-energy">100%</span></div>
+        <div class="progress-bg"><div class="progress-fill fill-energy" id="bar-energy" style="width: 100%"></div></div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label"><span>健康 (Health)</span><span id="val-health">100%</span></div>
+        <div class="progress-bg"><div class="progress-fill fill-hp" id="bar-health" style="width: 100%"></div></div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="action-btn" data-action="feed">
+        🍱
+        <span class="btn-label">投喂</span>
+      </button>
+      <button class="action-btn" data-action="play">
+        🎮
+        <span class="btn-label">玩耍</span>
+      </button>
+      <button class="action-btn" data-action="sleep">
+        💤
+        <span class="btn-label">休息</span>
+      </button>
+      <button class="action-btn" data-action="clean">
+        ✨
+        <span class="btn-label">清理</span>
+      </button>
+    </div>
+
+    <div class="log-area" id="gameLog">
+      </div>
+
+    <div class="settings-area">
+      <label class="custom-btn-small">
+        🖼️ 更换背景
+        <input type="file" id="customBgInput" accept="image/*" style="display: none;">
+      </label>
+      <span style="font-size:0.8rem; color:#999; margin-left:10px;">提示：点击中间的颜文字可上传图片头像</span>
     </div>
   </div>
 
-  <script>
-    window.addEventListener("load", () => {
-      setTimeout(() => {
-        const bs = document.getElementById("bootScreen");
-        if (!bs) return;
-        bs.style.transition = "opacity 0.6s ease";
-        bs.style.opacity = "0";
+<script>
+/**
+ * 🛠️ 核心引擎逻辑
+ * 包含状态管理、存档系统、颜文字逻辑
+ */
 
-        setTimeout(() => bs.remove(), 650);
-      }, 2200);
-    });
-  </script>
+// === 1. 初始化数据 ===
+const defaultState = {
+  name: "律斗",
+  mood: 80,    // 0-100 (越高越好)
+  hunger: 20,  // 0-100 (越低越好)
+  energy: 90,  // 0-100 (越高越好)
+  health: 100, // 0-100 (越高越好)
+  exp: 0
+};
+
+// 3个存档槽位
+let petSlots = [
+  { name: "律斗-1", state: { ...defaultState } },
+  { name: "律斗-2", state: { ...defaultState } },
+  { name: "律斗-3", state: { ...defaultState } }
+];
+
+// 当前运行状态 (深拷贝)
+let currentSlotIndex = 0;
+let petState = { ...defaultState };
+
+// 颜文字字典 (Moe System)
+const emotions = {
+  happy: ["(◕‿◕✿)", "(≧◡≦)", "(*^▽^*)", "(UwU)"],
+  normal: ["(・_・)", "(OwO)", "(•̀ᴗ•́)و", "(¬_¬)"],
+  sad: ["(｡•́︿•̀｡)", "(T_T)", "(;´༎ຶД༎ຶ`)", "(._.)"],
+  dead: ["(×_×)", "(✖╭╮✖)"],
+  sleeping: ["(¦ꒉ[▓▓]", "(u_u)...zzZ"],
+  eating: ["(๑´ڡ`๑)", "( o˘◡˘o)"]
+};
+
+// === 2. 核心功能函数 ===
+
+// 深度拷贝辅助函数
+function copyState(target, source) {
+  Object.assign(target, source);
+}
+
+// 添加日志
+function addLog(msg, isSystem = false) {
+  const logEl = document.getElementById("gameLog");
+  const entry = document.createElement("div");
+  entry.className = "log-entry";
+  const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  entry.innerHTML = `<span style="color:#aaa;font-size:0.8em">[${time}]</span> ${msg}`;
+  if (isSystem) entry.style.borderLeftColor = "#ff5252";
+  
+  logEl.appendChild(entry);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+// 更新颜文字和气泡
+function updateExpression(override = null) {
+  const faceEl = document.getElementById("petFace");
+  const bubble = document.getElementById("speechBubble");
+  
+  // 如果用户上传了图片头像，就不更新颜文字
+  if (faceEl.innerHTML.includes("<img")) return; 
+
+  if (override) {
+    faceEl.innerText = override;
+    return;
+  }
+
+  let status = "normal";
+  let say = "......";
+
+  if (petState.health <= 0) { status = "dead"; say = "系统离线..."; }
+  else if (petState.energy < 20) { status = "sleeping"; say = "好困啊..."; }
+  else if (petState.mood > 80) { status = "happy"; say = "感觉棒极了！"; }
+  else if (petState.mood < 30 || petState.hunger > 80) { status = "sad"; say = "我不舒服..."; }
+  
+  // 随机取一个颜文字
+  const list = emotions[status];
+  faceEl.innerText = list[Math.floor(Math.random() * list.length)];
+  
+  // 偶尔显示气泡
+  if(Math.random() > 0.7) {
+    bubble.innerText = say;
+    bubble.classList.add("show");
+    setTimeout(() => bubble.classList.remove("show"), 3000);
+  }
+}
+
+// 更新界面进度条
+function updateUI() {
+  // 限制数值范围 0-100
+  ["mood", "hunger", "energy", "health"].forEach(key => {
+    if (petState[key] > 100) petState[key] = 100;
+    if (petState[key] < 0) petState[key] = 0;
+    
+    document.getElementById(`val-${key}`).innerText = Math.floor(petState[key]) + "%";
+    document.getElementById(`bar-${key}`).style.width = petState[key] + "%";
+  });
+
+  updateExpression();
+}
+
+// 行为处理
+function applyAction(action) {
+  if (petState.health <= 0) {
+    addLog("律斗已经无法回应你了...", true);
+    return;
+  }
+
+  const bubble = document.getElementById("speechBubble");
+  bubble.classList.add("show");
+
+  switch (action) {
+    case "feed":
+      petState.hunger -= 20;
+      petState.health += 2;
+      petState.energy += 5;
+      addLog("喂食：不仅吃饱了，还感到很满足。");
+      bubble.innerText = "好吃！(๑´ڡ`๑)";
+      updateExpression("(๑´ڡ`๑)");
+      break;
+    case "play":
+      if (petState.energy < 10) {
+        addLog("太累了，玩不动了。", true);
+        return;
+      }
+      petState.mood += 15;
+      petState.energy -= 15;
+      petState.hunger += 5;
+      addLog("玩耍：心情变好了，但是有点累。");
+      bubble.innerText = "好耶！(≧◡≦)";
+      break;
+    case "sleep":
+      petState.energy += 40;
+      petState.hunger += 10;
+      petState.health += 5;
+      addLog("休息：精力充沛！");
+      bubble.innerText = "呼...zzZ";
+      updateExpression("(¦ꒉ[▓▓]");
+      break;
+    case "clean":
+      petState.health += 5;
+      petState.mood += 5;
+      addLog("清理：环境变得整洁了。");
+      bubble.innerText = "清爽！✨";
+      break;
+  }
+  
+  setTimeout(() => bubble.classList.remove("show"), 2000);
+  updateUI();
+}
+
+// 自然衰减循环 (模拟时间流逝)
+setInterval(() => {
+  if (petState.health <= 0) return;
+
+  petState.hunger += 0.5; // 变饿
+  petState.mood -= 0.5;   // 心情变差
+  petState.energy -= 0.2; // 精力消耗
+
+  // 状态惩罚
+  if (petState.hunger > 90) petState.health -= 1;
+  if (petState.mood < 10) petState.health -= 0.5;
+
+  updateUI();
+}, 2000); // 每2秒执行一次
+
+// === 3. 事件绑定 ===
+
+// 切换存档槽逻辑
+const petTabButtons = document.querySelectorAll(".pet-tab");
+function switchSlot(index) {
+  if (index === currentSlotIndex) return;
+  
+  // 保存当前
+  copyState(petSlots[currentSlotIndex].state, petState);
+  
+  // 切换
+  currentSlotIndex = index;
+  copyState(petState, petSlots[index].state);
+  
+  // UI更新
+  petTabButtons.forEach(btn => btn.classList.remove("active"));
+  petTabButtons[index].classList.add("active");
+  
+  addLog(`已切换到存储槽 ${index + 1}`, true);
+  updateUI();
+}
+
+petTabButtons.forEach(btn => {
+  btn.addEventListener("click", () => switchSlot(Number(btn.getAttribute("data-slot"))));
+});
+
+// 按钮点击
+document.querySelectorAll(".action-btn").forEach(btn => {
+  btn.addEventListener("click", () => applyAction(btn.getAttribute("data-action")));
+});
+
+// === 4. 自定义图片功能 (保留并优化) ===
+
+// 背景图
+document.getElementById("customBgInput").addEventListener("change", function() {
+  const file = this.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    document.body.style.background = `url('${e.target.result}') center/cover fixed`;
+    localStorage.setItem("ritsuto_bg", e.target.result);
+    addLog("背景已更新 ✨", true);
+  };
+  reader.readAsDataURL(file);
+});
+
+// 头像上传 (点击颜文字区域)
+const avatarInput = document.createElement("input");
+avatarInput.type = "file";
+avatarInput.accept = "image/*";
+avatarInput.style.display = "none";
+document.body.appendChild(avatarInput);
+
+document.getElementById("petAvatar").addEventListener("click", () => avatarInput.click());
+
+avatarInput.addEventListener("change", function() {
+  const file = this.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const faceEl = document.getElementById("petFace");
+    faceEl.innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:contain;border-radius:50%;">`;
+    localStorage.setItem("ritsuto_avatar", e.target.result);
+    addLog("头像已更换 (颜文字模式已暂停)", true);
+  };
+  reader.readAsDataURL(file);
+});
+
+// === 5. 启动与加载 ===
+window.addEventListener("load", () => {
+  // 模拟加载条
+  setTimeout(() => {
+    const bs = document.getElementById("bootScreen");
+    bs.style.opacity = "0";
+    bs.style.transition = "opacity 0.8s";
+    setTimeout(() => bs.remove(), 800);
+    
+    addLog("系统启动完成。律斗已上线。", true);
+    updateUI();
+  }, 2000);
+
+  // 读取本地存储的图片
+  const savedBg = localStorage.getItem("ritsuto_bg");
+  if(savedBg) document.body.style.background = `url('${savedBg}') center/cover fixed`;
+  
+  const savedAvatar = localStorage.getItem("ritsuto_avatar");
+  if(savedAvatar) {
+     document.getElementById("petFace").innerHTML = `<img src="${savedAvatar}" style="width:100%;height:100%;object-fit:contain;border-radius:50%;">`;
+  }
+  
+  // 音乐交互 (点击页面任意位置播放，规避浏览器策略)
+  document.addEventListener("click", () => {
+    const audio = document.getElementById("bgm");
+    // 注意：你需要自己放入音乐文件或链接，这里使用了空链接避免报错
+    if(audio.src) audio.play().catch(e=>{}); 
+  }, { once: true });
+});
+
+</script>
 </body>
 </html>
-<!-- ===== 自訂背景 + 自訂頭像 ===== -->
-
-<script>
-// --- 自訂背景 ---
-const customBgInput = document.getElementById("customBgInput");
-
-customBgInput.addEventListener("change", function () {
-  const file = this.files[0];
-  if (!file) return;
-
-  const reader = new FileReader();
-  reader.onload = function (e) {
-    const imgData = e.target.result;
-
-    // 套用背景
-    document.body.style.background = `url('${imgData}') center/cover fixed`;
-
-    // 存到 localStorage（記憶背景）
-    localStorage.setItem("ritsuto_custom_bg", imgData);
-
-    addLog("已套用自訂背景圖片。", true);
-  };
-
-  reader.readAsDataURL(file);
-});
-
-// --- 載入背景 ---
-(function loadCustomBgFromStorage() {
-  const bg = localStorage.getItem("ritsuto_custom_bg");
-  if (bg) {
-    document.body.style.background = `url('${bg}') center/cover fixed`;
-  }
-})();
-
-// --- 自訂頭像 ---
-const petFaceEl2 = document.getElementById("petFace");
-const customAvatarInput = document.createElement("input");
-customAvatarInput.type = "file";
-customAvatarInput.accept = "image/*";
-customAvatarInput.style.display = "none";
-document.body.appendChild(customAvatarInput);
-
-// 點擊頭像可更換自訂圖片
-document.getElementById("petAvatar").addEventListener("click", () => {
-  customAvatarInput.click();
-});
-
-// 上傳新頭像
-customAvatarInput.addEventListener("change", function () {
-  const file = this.files[0];
-  if (!file) return;
-
-  const reader = new FileReader();
-  reader.onload = function (e) {
-    const imgData = e.target.result;
-
-    // 把 Q版律斗圖片塞進頭像
-    petFaceEl2.innerHTML = `<img src="${imgData}" style="width:120px;height:auto;user-select:none;">`;
-
-    // 存入 localStorage，重整不會消失
-    localStorage.setItem("ritsuto_custom_avatar", imgData);
-
-    addLog("頭像已成功替換為你的自訂律斗形象。", true);
-  };
-
-  reader.readAsDataURL(file);
-});
-
-// 啟動時自動載入自訂頭像
-(function loadCustomAvatar() {
-  const avatar = localStorage.getItem("ritsuto_custom_avatar");
-  if (avatar) {
-    petFaceEl2.innerHTML = `<img src="${avatar}" style="width:120px;height:auto;user-select:none;">`;
-  }
-})();
-</script>
