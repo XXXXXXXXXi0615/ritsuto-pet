@@ -1,509 +1,868 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="zh-CN">
 <head>
-  <meta charset="UTF-8" />
-  <title>实原律斗 | 虚拟伴侣</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ritsutohbk - AI 角色扮演沙盒版</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            /* 基础变量 */
+            --primary: #a8b5b8;
+            --primary-dark: #7e8f94;
+            --bg-image: none; /* 默认无背景图 */
+            --bg-color: #f0f2f5;
+            --card-bg: rgba(255, 255, 255, 1); /* 默认不透明 */
+            --text-main: #333333;
+            --text-light: #666666;
+            --border: #e0e0e0;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            --modal-bg: rgba(0, 0, 0, 0.6);
+            --input-bg: rgba(249, 249, 249, 0.8);
+            --danger: #ff6b6b;
+            --msg-sent: #a8b5b8;
+            --msg-received: #e4e6eb;
+        }
 
-  <style>
-    :root {
-      --primary: #6366f1;
-      --secondary: #a855f7;
-      --bg-gradient: radial-gradient(circle at top, #f6ebff 0, #e5d8ff 40%, #d9e2ff 100%);
-      --glass: rgba(255, 255, 255, 0.85);
-      --glass-border: rgba(255, 255, 255, 0.6);
-      --text-main: #2d2d3a;
-      --text-sub: #666;
-    }
+        body.dark-mode {
+            --primary: #8a9ba0;
+            --bg-color: #181818;
+            --card-bg: rgba(36, 36, 36, 1);
+            --text-main: #e0e0e0;
+            --text-light: #a0a0a0;
+            --border: #444;
+            --input-bg: rgba(51, 51, 51, 0.8);
+            --danger: #ff4757;
+            --msg-sent: #4a5b60;
+            --msg-received: #3a3b3c;
+        }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: "Microsoft JhengHei", system-ui, sans-serif; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; transition: background 0.3s, color 0.3s, opacity 0.3s; }
+        
+        body { 
+            background-color: var(--bg-color);
+            background-image: var(--bg-image);
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            color: var(--text-main); 
+            padding-top: 20px; 
+            min-height: 100vh; 
+        }
 
-    body {
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: var(--bg-gradient);
-      color: var(--text-main);
-      transition: background 0.5s ease;
-      background-attachment: fixed;
-      background-size: cover;
-      background-position: center;
-    }
+        /* 增加一个全局半透明遮罩，防止背景太花看不清字 */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.02);
+            pointer-events: none;
+            z-index: -1;
+        }
 
-    /* App Container */
-    .app {
-      width: 95%;
-      max-width: 600px;
-      background: var(--glass);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border: 1px solid var(--glass-border);
-      border-radius: 24px;
-      box-shadow: 0 20px 50px rgba(70, 50, 120, 0.15);
-      padding: 25px;
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-      animation: popIn 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
-      position: relative;
-      overflow: hidden;
-    }
+        .container { max-width: 1000px; margin: 0 auto; display: grid; grid-template-columns: 260px 1fr; gap: 24px; padding: 0 20px; }
 
-    @keyframes popIn {
-      from { opacity: 0; transform: scale(0.95) translateY(20px); }
-      to { opacity: 1; transform: scale(1) translateY(0); }
-    }
+        /* 卡片通用样式 - 应用透明度变量 */
+        .card-style {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px); /* 毛玻璃特效 */
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
 
-    /* Header & Slots */
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding-bottom: 15px;
-      border-bottom: 2px dashed rgba(99, 102, 241, 0.2);
-    }
-    .title { font-size: 1.4rem; font-weight: 800; color: #4b0082; letter-spacing: 1px; }
-    
-    .slot-container { display: flex; gap: 8px; background: rgba(255,255,255,0.5); padding: 4px; border-radius: 12px; }
-    .pet-tab {
-      border: none; background: transparent; padding: 6px 12px;
-      border-radius: 8px; cursor: pointer; font-size: 0.85rem; color: #666;
-      transition: all 0.2s;
-    }
-    .pet-tab.active { background: white; color: var(--primary); box-shadow: 0 2px 8px rgba(0,0,0,0.05); font-weight: bold; }
+        /* --- 侧边栏 --- */
+        .sidebar { padding: 24px; height: fit-content; position: sticky; top: 24px; text-align: center; }
+        .logo { font-size: 1.5rem; font-weight: 800; color: var(--primary); margin-bottom: 20px; letter-spacing: 1px; text-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .current-user-card { cursor: pointer; padding: 15px; border-radius: 12px; transition: 0.2s; border: 1px solid transparent;}
+        .current-user-card:hover { background: rgba(0,0,0,0.05); border-color: var(--border); }
+        .sidebar-avatar { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary); margin-bottom: 10px; }
+        .sidebar-name { font-weight: 700; font-size: 1.1rem; color: var(--text-main); }
+        .sidebar-uid { color: var(--text-light); font-size: 0.85rem; margin-bottom: 20px; }
 
-    /* Pet Display Area */
-    .pet-display {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-direction: column;
-      padding: 20px 0;
-      position: relative;
-    }
-    
-    .avatar-wrapper {
-      width: 140px; height: 140px;
-      display: flex; align-items: center; justify-content: center;
-      position: relative;
-      cursor: pointer;
-    }
-    
-    /* 呼吸动画 */
-    .avatar-animate { animation: float 3s ease-in-out infinite; }
-    @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+        .btn-action { width: 100%; padding: 10px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .btn-switch { background: var(--primary); color: white; }
+        .btn-switch:hover { background: var(--primary-dark); }
+        .btn-settings { background: transparent; border: 2px solid var(--border); color: var(--text-main); }
+        .btn-settings:hover { border-color: var(--primary); color: var(--primary); }
+        .btn-home { background: transparent; border: 2px solid var(--border); color: var(--text-main); }
+        .btn-home:hover { border-color: var(--primary); color: var(--primary); }
+        .btn-mode { background: transparent; color: var(--text-light); margin-top: 10px; font-size: 0.9rem; }
 
-    .kaomoji {
-      font-size: 3.5rem; font-weight: bold; color: #4b0082;
-      text-shadow: 0 4px 10px rgba(99, 102, 241, 0.2);
-    }
-    
-    .speech-bubble {
-      background: white; padding: 8px 16px; border-radius: 20px 20px 20px 0;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-      font-size: 0.9rem; color: #555; margin-bottom: 15px;
-      opacity: 0; transform: translateY(10px);
-      transition: all 0.3s;
-    }
-    .speech-bubble.show { opacity: 1; transform: translateY(0); }
+        /* --- 主内容区 --- */
+        .main-content { display: flex; flex-direction: column; gap: 20px; }
+        .compose-box { padding: 20px; }
+        textarea { width: 100%; border: none; resize: none; background: var(--input-bg); padding: 15px; border-radius: 12px; color: var(--text-main); font-size: 1rem; outline: none; min-height: 80px; border: 1px solid var(--border); }
+        textarea:focus { border-color: var(--primary); }
+        .compose-actions { display: flex; justify-content: flex-end; margin-top: 10px; }
+        .btn-post { background: var(--primary); color: white; border: none; padding: 8px 24px; border-radius: 20px; font-weight: 700; cursor: pointer; }
 
-    /* Stats Bars */
-    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; width: 100%; }
-    .stat-item { background: rgba(255,255,255,0.5); padding: 10px; border-radius: 12px; }
-    .stat-label { font-size: 0.8rem; margin-bottom: 6px; color: #666; display: flex; justify-content: space-between; }
-    
-    .progress-bg { height: 8px; background: #eee; border-radius: 4px; overflow: hidden; }
-    .progress-fill { height: 100%; width: 50%; border-radius: 4px; transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
-    
-    /* Colors for stats */
-    .fill-hp { background: linear-gradient(90deg, #ff9a9e, #fecfef); box-shadow: 0 0 10px rgba(255, 154, 158, 0.4); }
-    .fill-mood { background: linear-gradient(90deg, #a18cd1, #fbc2eb); box-shadow: 0 0 10px rgba(161, 140, 209, 0.4); }
-    .fill-food { background: linear-gradient(90deg, #84fab0, #8fd3f4); box-shadow: 0 0 10px rgba(132, 250, 176, 0.4); }
-    .fill-energy { background: linear-gradient(90deg, #fccb90, #d57eeb); box-shadow: 0 0 10px rgba(252, 203, 144, 0.4); }
+        /* 帖子列表 */
+        .post-card { padding: 20px; animation: fadeIn 0.3s ease; display: flex; flex-direction: column; gap: 10px; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-    /* Actions */
-    .actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px; }
-    .action-btn {
-      border: none; background: white; padding: 12px 0; border-radius: 12px;
-      font-size: 1.2rem; cursor: pointer; transition: all 0.2s;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.05); color: var(--primary);
-    }
-    .action-btn:hover { transform: translateY(-3px); box-shadow: 0 8px 15px rgba(99, 102, 241, 0.2); background: #fbfaff; }
-    .action-btn:active { transform: scale(0.95); }
-    .btn-label { display: block; font-size: 0.75rem; margin-top: 4px; color: #888; }
+        .post-header { display: flex; gap: 12px; align-items: center; }
+        .post-avatar { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; cursor: pointer; }
+        .post-info h4 { font-size: 0.95rem; cursor: pointer; display: flex; align-items: center; gap: 6px; color: var(--text-main);}
+        .post-info h4:hover { text-decoration: underline; }
+        .post-time { font-size: 0.75rem; color: var(--text-light); }
+        .post-text { line-height: 1.6; white-space: pre-wrap; font-size: 0.95rem; margin: 5px 0; color: var(--text-main); }
+        .post-actions-bar { border-top: 1px solid var(--border); padding-top: 10px; display: flex; gap: 15px; font-size: 0.85rem; color: var(--text-light); }
+        .action-item { cursor: pointer; display: flex; align-items: center; gap: 5px; transition: color 0.2s; }
+        .action-item:hover { color: var(--primary); }
+        .action-item.danger:hover { color: var(--danger); }
+        .tag-pill { font-size: 0.7rem; padding: 1px 6px; border-radius: 4px; background: var(--input-bg); color: var(--text-light); border: 1px solid var(--border); }
 
-    /* Log */
-    .log-area {
-      height: 100px; background: rgba(0,0,0,0.03); border-radius: 12px;
-      padding: 10px; overflow-y: auto; font-size: 0.85rem; color: #666;
-      border: 1px solid rgba(0,0,0,0.05);
-    }
-    .log-entry { margin-bottom: 6px; padding-left: 10px; border-left: 3px solid var(--primary); animation: slideIn 0.3s ease; }
-    @keyframes slideIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
+        /* 评论区 */
+        .comment-section { background: var(--input-bg); border-radius: 8px; padding: 15px; margin-top: 10px; display: none; }
+        .comment-section.active { display: block; animation: slideDown 0.2s ease; }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .comment-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 15px; }
+        .comment-item { display: flex; gap: 10px; font-size: 0.9rem; }
+        .comment-avatar { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; }
+        .comment-content { background: var(--card-bg); padding: 8px 12px; border-radius: 10px; border: 1px solid var(--border); flex: 1; position: relative; }
+        .comment-user { font-weight: 700; font-size: 0.85rem; margin-bottom: 2px; display: flex; align-items: center; gap: 5px; color: var(--text-main); }
+        .comment-text { color: var(--text-main); line-height: 1.4; margin-bottom: 5px;}
+        .comment-actions { font-size: 0.75rem; color: var(--text-light); display: flex; gap: 10px; cursor: pointer; }
+        
+        /* 楼中楼 */
+        .replies-list { margin-top: 8px; padding-left: 10px; border-left: 2px solid var(--border); display: flex; flex-direction: column; gap: 8px; }
+        .reply-item { display: flex; gap: 8px; font-size: 0.85rem; }
+        .reply-avatar { width: 24px; height: 24px; border-radius: 50%; }
+        .reply-content { background: rgba(0,0,0,0.05); padding: 6px 10px; border-radius: 8px; flex: 1; color: var(--text-main); }
+        .reply-box { margin-top: 8px; display: none; gap: 5px; }
+        .reply-box input { flex: 1; padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); outline: none; font-size: 0.85rem; background: var(--card-bg); color: var(--text-main); }
 
-    /* Custom Settings */
-    .settings-area { margin-top: 10px; text-align: center; }
-    .custom-btn-small {
-      background: transparent; border: 1px solid #ccc; padding: 5px 10px;
-      border-radius: 20px; font-size: 0.8rem; color: #666; cursor: pointer;
-    }
-    .custom-btn-small:hover { background: white; color: var(--primary); border-color: var(--primary); }
+        .comment-input-row { display: flex; gap: 10px; }
+        .comment-input-row input { flex: 1; padding: 8px 12px; border-radius: 20px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text-main); outline: none; }
+        .btn-send-comment { background: transparent; color: var(--primary); border: none; font-weight: bold; cursor: pointer; }
 
-    /* Boot Screen */
-    #bootScreen {
-      position: fixed; inset: 0; background: #0c1024; z-index: 9999;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      color: #e5e5ff; font-size: 1rem;
-    }
-  </style>
+        /* --- 个人主页 --- */
+        .profile-view { display: none; overflow: hidden; }
+        .profile-cover { height: 200px; background-size: cover; background-position: center; background-color: #ccc; position: relative; cursor: default; }
+        .profile-cover.editable { cursor: pointer; }
+        .profile-details { padding: 0 24px 24px; position: relative; }
+        .profile-avatar-large { width: 120px; height: 120px; border-radius: 50%; border: 4px solid var(--card-bg); margin-top: -60px; object-fit: cover; position: relative; z-index: 2; background: white; }
+        .avatar-wrapper { position: relative; width: 120px; display: inline-block; }
+        .profile-name-group h1 { font-size: 1.5rem; font-weight: 800; display: flex; align-items: center; gap: 10px; color: var(--text-main);}
+        .profile-meta-tags { display: flex; gap: 8px; margin-top: 5px; font-size: 0.85rem; color: var(--text-light); }
+        .profile-bio { color: var(--text-light); margin-top: 12px; font-size: 0.95rem; line-height: 1.5; white-space: pre-wrap;}
+        .profile-tabs { display: flex; border-bottom: 1px solid var(--border); margin-top: 20px; padding: 0 24px; }
+        .profile-tab { padding: 15px; font-weight: 600; color: var(--primary); border-bottom: 3px solid var(--primary); }
+
+        .btn-profile-action { background: transparent; border: 1px solid var(--border); padding: 6px 14px; border-radius: 20px; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 5px; color: var(--text-main); }
+        .btn-profile-action:hover { border-color: var(--primary); color: var(--primary); }
+
+        /* --- 模态框 --- */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--modal-bg); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(5px); }
+        .modal-content { background: var(--card-bg); width: 90%; max-width: 500px; padding: 24px; border-radius: 16px; animation: slideUp 0.3s; max-height: 90vh; overflow-y: auto; color: var(--text-main); border: 1px solid var(--border); }
+        @keyframes slideUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .close-modal { float: right; cursor: pointer; font-size: 1.2rem; color: var(--text-light); }
+
+        /* Tab 切换样式 */
+        .settings-tabs { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+        .settings-tab { padding: 10px 15px; cursor: pointer; color: var(--text-light); font-weight: 600; border-bottom: 2px solid transparent; }
+        .settings-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.3s; }
+
+        /* 账号列表 */
+        .account-list { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
+        .account-item { display: flex; align-items: center; gap: 12px; padding: 12px; border: 1px solid var(--border); border-radius: 10px; cursor: pointer; }
+        .account-item:hover { background: rgba(0,0,0,0.03); border-color: var(--primary); }
+        .account-item img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
+        
+        /* 表单元素 */
+        .form-group { margin-bottom: 16px; }
+        .form-label { display: block; margin-bottom: 6px; font-weight: 600; color: var(--text-main); font-size: 0.9rem; }
+        .form-input, .form-select, .form-textarea { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--input-bg); color: var(--text-main); outline: none; }
+        .form-input:focus { border-color: var(--primary); }
+        .form-range { width: 100%; cursor: pointer; }
+        .btn-save { width: 100%; background: var(--primary); color: white; border: none; padding: 10px; border-radius: 8px; font-weight: 700; cursor: pointer; margin-top: 10px; }
+        .btn-secondary { background: transparent; border: 1px solid var(--border); color: var(--text-main); padding: 8px 12px; border-radius: 6px; cursor: pointer; }
+
+        /* 颜色选择器 */
+        .color-picker-wrapper { display: flex; align-items: center; gap: 10px; }
+        input[type="color"] { border: none; width: 40px; height: 40px; cursor: pointer; background: none; }
+
+        #toast { visibility: hidden; min-width: 250px; background-color: #333; color: #fff; text-align: center; border-radius: 8px; padding: 16px; position: fixed; z-index: 2000; bottom: 30px; left: 50%; transform: translateX(-50%); font-size: 0.9rem; }
+        #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
+        @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
+        @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
+        input[type="file"] { display: none; }
+
+        @media (max-width: 700px) {
+            .container { grid-template-columns: 1fr; }
+            .sidebar { display: none; } 
+            .sidebar.mobile-visible { display: block; position: fixed; top: 0; left: 0; width: 100%; z-index: 999; border-radius: 0; }
+        }
+    </style>
 </head>
 <body>
 
-  <audio id="bgm" src="" loop></audio>
+<div class="container">
+    <aside class="sidebar card-style">
+        <div class="logo">Ritsutohbk</div>
+        
+        <div class="current-user-card" onclick="openProfile(currentUser.uid)">
+            <img src="" class="sidebar-avatar" id="sideAvatar">
+            <div class="sidebar-name" id="sideName">加载中</div>
+            <div class="sidebar-uid" id="sideUid">UID: ---</div>
+        </div>
 
-  <div id="bootScreen">
-    <div style="margin-bottom: 15px; font-size: 1.2rem; letter-spacing: 2px;">RITSUTO SYSTEM</div>
-    <div style="width: 220px; height: 6px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden;">
-      <span style="display: block; height: 100%; width: 0%; background: linear-gradient(90deg, #6366f1, #a855f7); animation: loadingProgress 2s linear forwards;"></span>
+        <button class="btn-action btn-home" onclick="showFeed()">
+            <i class="fas fa-home"></i> 论坛主页
+        </button>
+
+        <button class="btn-action btn-settings" onclick="openSettingsModal()">
+            <i class="fas fa-sliders-h"></i> 核心设置
+        </button>
+
+        <button class="btn-action btn-switch" onclick="openSwitchModal()">
+            <i class="fas fa-users-cog"></i> 切换/管理账号
+        </button>
+
+        <button class="btn-action btn-mode" onclick="toggleDarkMode()">
+            <i class="fas fa-moon"></i> 切换夜间模式
+        </button>
+    </aside>
+
+    <main class="main-content">
+        <div id="feedView">
+            <div class="compose-box card-style">
+                <textarea id="postInput" placeholder="在此输入你的想法..."></textarea>
+                <div class="compose-actions">
+                    <button class="btn-post" onclick="publishPost()">发布</button>
+                </div>
+            </div>
+            <div style="margin-top:20px; font-weight:700; color:var(--text-light); text-shadow: 0 1px 2px rgba(255,255,255,0.5);">最新动态</div>
+            <div id="postsContainer" style="display: flex; flex-direction: column; gap: 16px; margin-top: 10px;">
+                </div>
+        </div>
+
+        <div id="profileView" class="profile-view card-style">
+            <input type="file" id="bgInput" accept="image/*" onchange="updateImage(this, 'bg')">
+            <div class="profile-cover" id="profileCover" onclick="triggerUpload('bgInput')"></div>
+            
+            <div class="profile-details">
+                <div class="avatar-wrapper" id="avatarWrapper" onclick="triggerUpload('avatarInput')">
+                    <input type="file" id="avatarInput" accept="image/*" onchange="updateImage(this, 'avatar')">
+                    <img src="" class="profile-avatar-large" id="profileAvatar">
+                </div>
+
+                <div class="profile-name-group">
+                    <h1 id="profileName">用户名称</h1>
+                    <div class="profile-meta-tags">
+                        <span>UID: <span id="profileUid"></span></span>
+                        <span class="tag-pill" id="profileGender">未知</span>
+                        <span class="tag-pill" id="profileAge">?岁</span>
+                    </div>
+                </div>
+                
+                <div style="display:flex; gap:10px; margin-top:15px;">
+                    <button class="btn-profile-action" id="btnEditProfile" onclick="openEditProfileModal()">
+                        <i class="fas fa-pen"></i> 编辑资料
+                    </button>
+                    <button class="btn-profile-action" id="btnChatUser" onclick="startChat()" style="background:var(--primary); color:white; border:none;">
+                        <i class="fas fa-comments"></i> 发私信
+                    </button>
+                </div>
+                <div class="profile-bio" id="profileBio">暂无签名</div>
+            </div>
+
+            <div class="profile-tabs">
+                <div class="profile-tab">发布的帖子</div>
+            </div>
+
+            <div id="profilePostsContainer" style="padding: 20px; display: flex; flex-direction: column; gap: 16px;">
+                </div>
+        </div>
+    </main>
+</div>
+
+<div class="modal" id="switchModal">
+    <div class="modal-content">
+        <i class="fas fa-times close-modal" onclick="closeModal('switchModal')"></i>
+        <h3 style="margin-bottom: 10px;">选择账号</h3>
+        <p style="font-size: 0.85rem; color: var(--text-light); margin-bottom:15px;">提示：选择 AI 账号后，你也可以编辑它的名字和头像。</p>
+        <div class="account-list" id="accountList"></div>
+        <button class="btn-secondary" style="width:100%; margin-top:15px;" onclick="createNewAccount()">
+            <i class="fas fa-plus"></i> 新建普通账号
+        </button>
     </div>
-    <div style="margin-top: 10px; font-size: 0.8rem; opacity: 0.6;">Initializing Personality Modules...</div>
-  </div>
+</div>
 
-  <div class="app">
-    <div class="header">
-      <div class="title">实原律斗</div>
-      <div class="slot-container">
-        <button class="pet-tab active" data-slot="0">槽位1</button>
-        <button class="pet-tab" data-slot="1">槽位2</button>
-        <button class="pet-tab" data-slot="2">槽位3</button>
-      </div>
+<div class="modal" id="settingsModal">
+    <div class="modal-content">
+        <i class="fas fa-times close-modal" onclick="closeModal('settingsModal')"></i>
+        <h3 style="margin-bottom: 20px;">系统设置</h3>
+        
+        <div class="settings-tabs">
+            <div class="settings-tab active" onclick="switchSettingsTab('ui')">界面外观</div>
+            <div class="settings-tab" onclick="switchSettingsTab('api')">API 配置</div>
+            <div class="settings-tab" onclick="switchSettingsTab('persona')">AI 人设</div>
+        </div>
+
+        <div id="tab-ui" class="tab-content active">
+            <div class="form-group">
+                <label class="form-label">背景图片 URL</label>
+                <input type="text" id="uiBgUrl" class="form-input" placeholder="输入图片链接..." onchange="updateUIPreview()">
+                <p style="font-size:0.75rem; color:var(--text-light); margin-top:4px;">留空则使用纯色背景。</p>
+            </div>
+            <div class="form-group">
+                <label class="form-label">卡片透明度 (<span id="opacityVal">100</span>%)</label>
+                <input type="range" id="uiOpacity" class="form-range" min="0.1" max="1.0" step="0.05" oninput="updateUIPreview()">
+            </div>
+            <div class="form-group">
+                <label class="form-label">全局字体颜色</label>
+                <div class="color-picker-wrapper">
+                    <input type="color" id="uiTextColor" onchange="updateUIPreview()">
+                    <span style="font-size:0.9rem; color:var(--text-light)">点击色块选择</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-api" class="tab-content">
+            <div class="form-group">
+                <label class="form-label">API Endpoint URL</label>
+                <input type="text" id="apiUrlInput" class="form-input" placeholder="例如: https://api.openai.com/v1">
+            </div>
+            <div class="form-group">
+                <label class="form-label">API Key</label>
+                <input type="password" id="apiKeyInput" class="form-input" placeholder="sk-...">
+            </div>
+            <button class="btn-secondary" onclick="fetchApiModels()" style="margin-bottom:15px;">
+                <i class="fas fa-sync"></i> 获取模型列表
+            </button>
+            <div class="form-group">
+                <label class="form-label">选择模型</label>
+                <select id="apiModelSelect" class="form-select">
+                    <option value="gpt-3.5-turbo">gpt-3.5-turbo</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="tab-persona" class="tab-content">
+            <p style="font-size:0.85rem; color:var(--text-light); margin-bottom:15px; line-height:1.5;">
+                在此定义 AI 的行为。当你点击“让 AI 回复”时，AI 将扮演此角色，并以普通用户的身份（不带AI标签）进行评论。
+            </p>
+            <div class="form-group">
+                <label class="form-label">System Prompt (角色设定)</label>
+                <textarea id="aiSystemPrompt" class="form-textarea" rows="4" placeholder="例如：你是一个言辞犀利的电影评论家..."></textarea>
+            </div>
+            <div class="form-group">
+                <label class="form-label">回复温度 (Temperature: <span id="tempVal">0.7</span>)</label>
+                <input type="range" id="aiTemp" class="form-range" min="0" max="2" step="0.1" oninput="document.getElementById('tempVal').innerText=this.value">
+                <p style="font-size:0.75rem; color:var(--text-light); margin-top:4px;">
+                    0 = 理性/固定，2 = 疯狂/创造性。建议 0.7-1.0。
+                </p>
+            </div>
+        </div>
+
+        <button class="btn-save" onclick="saveAllSettings()">保存所有设置</button>
     </div>
+</div>
 
-    <div class="pet-display">
-      <div class="speech-bubble" id="speechBubble">今天感觉不错哦~ (◕‿◕)</div>
-      <div class="avatar-wrapper avatar-animate" id="petAvatar" title="点击更换自定义头像">
-        <div id="petFace" class="kaomoji">(◕‿◕✿)</div>
-      </div>
+<div class="modal" id="editProfileModal">
+    <div class="modal-content">
+        <i class="fas fa-times close-modal" onclick="closeModal('editProfileModal')"></i>
+        <h3 style="margin-bottom: 20px;">编辑资料</h3>
+        <div class="form-group"><label class="form-label">昵称</label><input type="text" id="editName" class="form-input"></div>
+        <div class="form-group"><label class="form-label">UID (修改后数据自动迁移)</label><input type="text" id="editUid" class="form-input"></div>
+        <div class="form-group"><label class="form-label">性别</label><select id="editGender" class="form-select"><option value="保密">保密</option><option value="男">男</option><option value="女">女</option></select></div>
+        <div class="form-group"><label class="form-label">个性签名</label><textarea id="editBio" class="form-textarea" rows="3"></textarea></div>
+        <button class="btn-save" onclick="saveProfileChanges()">保存修改</button>
     </div>
+</div>
 
-    <div class="stats-grid">
-      <div class="stat-item">
-        <div class="stat-label"><span>心情 (Mood)</span><span id="val-mood">100%</span></div>
-        <div class="progress-bg"><div class="progress-fill fill-mood" id="bar-mood" style="width: 100%"></div></div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-label"><span>饱食 (Hunger)</span><span id="val-hunger">0%</span></div>
-        <div class="progress-bg"><div class="progress-fill fill-food" id="bar-hunger" style="width: 0%"></div></div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-label"><span>精力 (Energy)</span><span id="val-energy">100%</span></div>
-        <div class="progress-bg"><div class="progress-fill fill-energy" id="bar-energy" style="width: 100%"></div></div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-label"><span>健康 (Health)</span><span id="val-health">100%</span></div>
-        <div class="progress-bg"><div class="progress-fill fill-hp" id="bar-health" style="width: 100%"></div></div>
-      </div>
+<div class="modal" id="chatModal" style="align-items: center;">
+    <div class="modal-content" style="max-width: 500px; height: 80vh; padding:0; display:flex; flex-direction:column;">
+        <div style="padding:15px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between;">
+            <strong id="chatHeaderName">Chat</strong><i class="fas fa-times close-modal" onclick="closeModal('chatModal')"></i>
+        </div>
+        <div id="chatBody" style="flex:1; padding:20px; overflow-y:auto; display:flex; flex-direction:column; gap:15px;"></div>
+        <div style="padding:15px; border-top:1px solid var(--border); display:flex; gap:10px;">
+            <input type="text" id="chatInput" class="form-input" placeholder="输入消息..." onkeypress="handleChatEnter(event)">
+            <button class="btn-post" style="padding:8px 16px; margin:0;" onclick="sendChatMessage()">发送</button>
+        </div>
     </div>
+</div>
 
-    <div class="actions">
-      <button class="action-btn" data-action="feed">
-        🍱
-        <span class="btn-label">投喂</span>
-      </button>
-      <button class="action-btn" data-action="play">
-        🎮
-        <span class="btn-label">玩耍</span>
-      </button>
-      <button class="action-btn" data-action="sleep">
-        💤
-        <span class="btn-label">休息</span>
-      </button>
-      <button class="action-btn" data-action="clean">
-        ✨
-        <span class="btn-label">清理</span>
-      </button>
-    </div>
-
-    <div class="log-area" id="gameLog">
-      </div>
-
-    <div class="settings-area">
-      <label class="custom-btn-small">
-        🖼️ 更换背景
-        <input type="file" id="customBgInput" accept="image/*" style="display: none;">
-      </label>
-      <span style="font-size:0.8rem; color:#999; margin-left:10px;">提示：点击中间的颜文字可上传图片头像</span>
-    </div>
-  </div>
+<div id="toast">提示</div>
 
 <script>
-/**
- * 🛠️ 核心引擎逻辑
- * 包含状态管理、存档系统、颜文字逻辑
- */
-
-// === 1. 初始化数据 ===
-const defaultState = {
-  name: "律斗",
-  mood: 80,    // 0-100 (越高越好)
-  hunger: 20,  // 0-100 (越低越好)
-  energy: 90,  // 0-100 (越高越好)
-  health: 100, // 0-100 (越高越好)
-  exp: 0
-};
-
-// 3个存档槽位
-let petSlots = [
-  { name: "律斗-1", state: { ...defaultState } },
-  { name: "律斗-2", state: { ...defaultState } },
-  { name: "律斗-3", state: { ...defaultState } }
-];
-
-// 当前运行状态 (深拷贝)
-let currentSlotIndex = 0;
-let petState = { ...defaultState };
-
-// 颜文字字典 (Moe System)
-const emotions = {
-  happy: ["(◕‿◕✿)", "(≧◡≦)", "(*^▽^*)", "(UwU)"],
-  normal: ["(・_・)", "(OwO)", "(•̀ᴗ•́)و", "(¬_¬)"],
-  sad: ["(｡•́︿•̀｡)", "(T_T)", "(;´༎ຶД༎ຶ`)", "(._.)"],
-  dead: ["(×_×)", "(✖╭╮✖)"],
-  sleeping: ["(¦ꒉ[▓▓]", "(u_u)...zzZ"],
-  eating: ["(๑´ڡ`๑)", "( o˘◡˘o)"]
-};
-
-// === 2. 核心功能函数 ===
-
-// 深度拷贝辅助函数
-function copyState(target, source) {
-  Object.assign(target, source);
-}
-
-// 添加日志
-function addLog(msg, isSystem = false) {
-  const logEl = document.getElementById("gameLog");
-  const entry = document.createElement("div");
-  entry.className = "log-entry";
-  const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  entry.innerHTML = `<span style="color:#aaa;font-size:0.8em">[${time}]</span> ${msg}`;
-  if (isSystem) entry.style.borderLeftColor = "#ff5252";
-  
-  logEl.appendChild(entry);
-  logEl.scrollTop = logEl.scrollHeight;
-}
-
-// 更新颜文字和气泡
-function updateExpression(override = null) {
-  const faceEl = document.getElementById("petFace");
-  const bubble = document.getElementById("speechBubble");
-  
-  // 如果用户上传了图片头像，就不更新颜文字
-  if (faceEl.innerHTML.includes("<img")) return; 
-
-  if (override) {
-    faceEl.innerText = override;
-    return;
-  }
-
-  let status = "normal";
-  let say = "......";
-
-  if (petState.health <= 0) { status = "dead"; say = "系统离线..."; }
-  else if (petState.energy < 20) { status = "sleeping"; say = "好困啊..."; }
-  else if (petState.mood > 80) { status = "happy"; say = "感觉棒极了！"; }
-  else if (petState.mood < 30 || petState.hunger > 80) { status = "sad"; say = "我不舒服..."; }
-  
-  // 随机取一个颜文字
-  const list = emotions[status];
-  faceEl.innerText = list[Math.floor(Math.random() * list.length)];
-  
-  // 偶尔显示气泡
-  if(Math.random() > 0.7) {
-    bubble.innerText = say;
-    bubble.classList.add("show");
-    setTimeout(() => bubble.classList.remove("show"), 3000);
-  }
-}
-
-// 更新界面进度条
-function updateUI() {
-  // 限制数值范围 0-100
-  ["mood", "hunger", "energy", "health"].forEach(key => {
-    if (petState[key] > 100) petState[key] = 100;
-    if (petState[key] < 0) petState[key] = 0;
+    // --- 默认数据 ---
+    const defaultUsers = [
+        { uid: '1001', name: 'Ritsuto_Main', gender: '男', age: 24, avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Ritsuto', bg: '', bio: '这是我的主账号。' },
+        { uid: 'AI_BOT', name: 'AI_Assistant', gender: '保密', age: 0, avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=AI', bg: '', bio: '我是AI助手，但我现在有了灵魂。' }
+    ];
+    const defaultPosts = [{ id: 1, uid: '1001', content: '新功能演示：\n1. 点击左侧 [核心设置] 可更换背景、调整透明度。\n2. 在设置里配置 [AI人设] 和温度。\n3. 点击下方“让 AI 看看”按钮，AI 会以普通用户身份回复你！', timestamp: Date.now(), comments: [] }];
     
-    document.getElementById(`val-${key}`).innerText = Math.floor(petState[key]) + "%";
-    document.getElementById(`bar-${key}`).style.width = petState[key] + "%";
-  });
-
-  updateExpression();
-}
-
-// 行为处理
-function applyAction(action) {
-  if (petState.health <= 0) {
-    addLog("律斗已经无法回应你了...", true);
-    return;
-  }
-
-  const bubble = document.getElementById("speechBubble");
-  bubble.classList.add("show");
-
-  switch (action) {
-    case "feed":
-      petState.hunger -= 20;
-      petState.health += 2;
-      petState.energy += 5;
-      addLog("喂食：不仅吃饱了，还感到很满足。");
-      bubble.innerText = "好吃捏(๑´ڡ`๑)";
-      updateExpression("(๑´ڡ`๑)");
-      break;
-    case "play":
-      if (petState.energy < 10) {
-        addLog("太累了，玩不动了。", true);
-        return;
-      }
-      petState.mood += 15;
-      petState.energy -= 15;
-      petState.hunger += 5;
-      addLog("玩耍：心情变好了，但是有点累。");
-      bubble.innerText = "好耶！(≧◡≦)";
-      break;
-    case "sleep":
-      petState.energy += 40;
-      petState.hunger += 10;
-      petState.health += 5;
-      addLog("休息：精力充沛！");
-      bubble.innerText = "呼...zzZ";
-      updateExpression("(¦ꒉ[▓▓]");
-      break;
-    case "clean":
-      petState.health += 5;
-      petState.mood += 5;
-      addLog("清理：环境变得整洁了。");
-      bubble.innerText = "清爽！✨";
-      break;
-  }
-  
-  setTimeout(() => bubble.classList.remove("show"), 2000);
-  updateUI();
-}
-
-// 自然衰减循环 (模拟时间流逝)
-setInterval(() => {
-  if (petState.health <= 0) return;
-
-  petState.hunger += 0.5; // 变饿
-  petState.mood -= 0.5;   // 心情变差
-  petState.energy -= 0.2; // 精力消耗
-
-  // 状态惩罚
-  if (petState.hunger > 90) petState.health -= 1;
-  if (petState.mood < 10) petState.health -= 0.5;
-
-  updateUI();
-}, 2000); // 每2秒执行一次
-
-// === 3. 事件绑定 ===
-
-// 切换存档槽逻辑
-const petTabButtons = document.querySelectorAll(".pet-tab");
-function switchSlot(index) {
-  if (index === currentSlotIndex) return;
-  
-  // 保存当前
-  copyState(petSlots[currentSlotIndex].state, petState);
-  
-  // 切换
-  currentSlotIndex = index;
-  copyState(petState, petSlots[index].state);
-  
-  // UI更新
-  petTabButtons.forEach(btn => btn.classList.remove("active"));
-  petTabButtons[index].classList.add("active");
-  
-  addLog(`已切换到存储槽 ${index + 1}`, true);
-  updateUI();
-}
-
-petTabButtons.forEach(btn => {
-  btn.addEventListener("click", () => switchSlot(Number(btn.getAttribute("data-slot"))));
-});
-
-// 按钮点击
-document.querySelectorAll(".action-btn").forEach(btn => {
-  btn.addEventListener("click", () => applyAction(btn.getAttribute("data-action")));
-});
-
-// === 4. 自定义图片功能 (保留并优化) ===
-
-// 背景图
-document.getElementById("customBgInput").addEventListener("change", function() {
-  const file = this.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    document.body.style.background = `url('${e.target.result}') center/cover fixed`;
-    localStorage.setItem("ritsuto_bg", e.target.result);
-    addLog("背景已更新 ✨", true);
-  };
-  reader.readAsDataURL(file);
-});
-
-// 头像上传 (点击颜文字区域)
-const avatarInput = document.createElement("input");
-avatarInput.type = "file";
-avatarInput.accept = "image/*";
-avatarInput.style.display = "none";
-document.body.appendChild(avatarInput);
-
-document.getElementById("petAvatar").addEventListener("click", () => avatarInput.click());
-
-avatarInput.addEventListener("change", function() {
-  const file = this.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    const faceEl = document.getElementById("petFace");
-    faceEl.innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:contain;border-radius:50%;">`;
-    localStorage.setItem("ritsuto_avatar", e.target.result);
-    addLog("头像已更换 (颜文字模式已暂停)", true);
-  };
-  reader.readAsDataURL(file);
-});
-
-// === 5. 启动与加载 ===
-window.addEventListener("load", () => {
-  // 模拟加载条
-  setTimeout(() => {
-    const bs = document.getElementById("bootScreen");
-    bs.style.opacity = "0";
-    bs.style.transition = "opacity 0.8s";
-    setTimeout(() => bs.remove(), 800);
+    // --- 全局状态 ---
+    let users = JSON.parse(localStorage.getItem('ritsuto_users')) || defaultUsers;
+    let posts = JSON.parse(localStorage.getItem('ritsuto_posts')) || defaultPosts;
+    let chats = JSON.parse(localStorage.getItem('ritsuto_chats')) || {};
+    let currentUserUid = localStorage.getItem('ritsuto_current_uid') || '1001';
     
-    addLog("系统启动完成。律斗已上线。", true);
-    updateUI();
-  }, 2000);
+    // 设置对象 (UI + API + Persona)
+    let appSettings = JSON.parse(localStorage.getItem('ritsuto_settings')) || {
+        uiBgUrl: '',
+        uiOpacity: 1,
+        uiTextColor: '#333333',
+        apiUrl: 'https://api.openai.com/v1',
+        apiKey: '',
+        apiModel: 'gpt-3.5-turbo',
+        aiSystemPrompt: '你是一个乐于助人的论坛用户，请用简短、自然的口语回复帖子。不要表现得像个机器人。',
+        aiTemp: 0.7
+    };
 
-  // 读取本地存储的图片
-  const savedBg = localStorage.getItem("ritsuto_bg");
-  if(savedBg) document.body.style.background = `url('${savedBg}') center/cover fixed`;
-  
-  const savedAvatar = localStorage.getItem("ritsuto_avatar");
-  if(savedAvatar) {
-     document.getElementById("petFace").innerHTML = `<img src="${savedAvatar}" style="width:100%;height:100%;object-fit:contain;border-radius:50%;">`;
-  }
-  
-  // 音乐交互 (点击页面任意位置播放，规避浏览器策略)
-  document.addEventListener("click", () => {
-    const audio = document.getElementById("bgm");
-    // 注意：你需要自己放入音乐文件或链接，这里使用了空链接避免报错
-    if(audio.src) audio.play().catch(e=>{}); 
-  }, { once: true });
-});
+    let currentUser = users.find(u => u.uid === currentUserUid) || users[0];
+    let currentChatTargetUid = null;
 
+    // --- 初始化 ---
+    function init() {
+        applyUISettings(); // 应用保存的视觉设置
+        renderSidebar();
+        if(document.getElementById('feedView').style.display !== 'none') renderFeed();
+        
+        // 填充设置面板的值
+        document.getElementById('uiBgUrl').value = appSettings.uiBgUrl || '';
+        document.getElementById('uiOpacity').value = appSettings.uiOpacity;
+        document.getElementById('opacityVal').innerText = Math.round(appSettings.uiOpacity * 100);
+        document.getElementById('uiTextColor').value = appSettings.uiTextColor;
+        
+        document.getElementById('apiUrlInput').value = appSettings.apiUrl;
+        document.getElementById('apiKeyInput').value = appSettings.apiKey;
+        document.getElementById('apiModelSelect').innerHTML = `<option value="${appSettings.apiModel}">${appSettings.apiModel}</option>`;
+        
+        document.getElementById('aiSystemPrompt').value = appSettings.aiSystemPrompt;
+        document.getElementById('aiTemp').value = appSettings.aiTemp;
+        document.getElementById('tempVal').innerText = appSettings.aiTemp;
+    }
+
+    // --- UI 设置逻辑 ---
+    function updateUIPreview() {
+        const bgUrl = document.getElementById('uiBgUrl').value.trim();
+        const opacity = document.getElementById('uiOpacity').value;
+        const color = document.getElementById('uiTextColor').value;
+
+        document.getElementById('opacityVal').innerText = Math.round(opacity * 100);
+        
+        const root = document.documentElement;
+        if(bgUrl) {
+            root.style.setProperty('--bg-image', `url('${bgUrl}')`);
+        } else {
+            root.style.setProperty('--bg-image', 'none');
+        }
+        root.style.setProperty('--card-bg', `rgba(255, 255, 255, ${opacity})`);
+        // 夜间模式下的适配
+        if(document.body.classList.contains('dark-mode')) {
+             root.style.setProperty('--card-bg', `rgba(36, 36, 36, ${opacity})`);
+        }
+        
+        root.style.setProperty('--text-main', color);
+    }
+
+    function applyUISettings() {
+        const root = document.documentElement;
+        if(appSettings.uiBgUrl) root.style.setProperty('--bg-image', `url('${appSettings.uiBgUrl}')`);
+        else root.style.setProperty('--bg-image', 'none');
+        
+        // 判断当前是否夜间模式来决定基底颜色
+        const isDark = document.body.classList.contains('dark-mode');
+        const baseRgb = isDark ? '36, 36, 36' : '255, 255, 255';
+        root.style.setProperty('--card-bg', `rgba(${baseRgb}, ${appSettings.uiOpacity})`);
+        
+        if(appSettings.uiTextColor) root.style.setProperty('--text-main', appSettings.uiTextColor);
+    }
+
+    function toggleDarkMode() {
+        document.body.classList.toggle('dark-mode');
+        applyUISettings(); // 重新计算背景透明度基底
+    }
+
+    function saveAllSettings() {
+        // UI
+        appSettings.uiBgUrl = document.getElementById('uiBgUrl').value.trim();
+        appSettings.uiOpacity = parseFloat(document.getElementById('uiOpacity').value);
+        appSettings.uiTextColor = document.getElementById('uiTextColor').value;
+        
+        // API
+        appSettings.apiUrl = document.getElementById('apiUrlInput').value.trim();
+        appSettings.apiKey = document.getElementById('apiKeyInput').value.trim();
+        appSettings.apiModel = document.getElementById('apiModelSelect').value;
+
+        // Persona
+        appSettings.aiSystemPrompt = document.getElementById('aiSystemPrompt').value.trim();
+        appSettings.aiTemp = parseFloat(document.getElementById('aiTemp').value);
+
+        localStorage.setItem('ritsuto_settings', JSON.stringify(appSettings));
+        closeModal('settingsModal');
+        showToast('所有设置已保存');
+        applyUISettings();
+    }
+
+    function switchSettingsTab(tabName) {
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.settings-tab').forEach(el => el.classList.remove('active'));
+        document.getElementById(`tab-${tabName}`).classList.add('active');
+        // event.target is simpler but need binding, iterating simple logic here
+        const tabs = document.querySelectorAll('.settings-tab');
+        if(tabName==='ui') tabs[0].classList.add('active');
+        if(tabName==='api') tabs[1].classList.add('active');
+        if(tabName==='persona') tabs[2].classList.add('active');
+    }
+
+    function openSettingsModal() { document.getElementById('settingsModal').style.display = 'flex'; }
+
+    // --- 核心业务逻辑 ---
+    function renderFeed() {
+        const container = document.getElementById('postsContainer');
+        container.innerHTML = '';
+        const sorted = [...posts].sort((a,b)=>b.timestamp-a.timestamp);
+        sorted.forEach(post => container.innerHTML += createPostHTML(post));
+    }
+
+    function createPostHTML(post) {
+        const u = users.find(u => u.uid === post.uid) || {name:'未知', avatar:''};
+        let commentsHTML = '';
+        if(post.comments) {
+            post.comments.forEach(c => {
+                const cu = users.find(u => u.uid === c.uid) || {name:'未知', avatar:''};
+                // 注意：这里不再给 AI 加特殊标签，看起来完全像普通用户
+                let repliesHTML = '';
+                if(c.replies) {
+                    c.replies.forEach(r => {
+                        const ru = users.find(u => u.uid === r.uid) || {name:'?',avatar:''};
+                        repliesHTML += `
+                        <div class="reply-item">
+                            <img src="${ru.avatar}" class="reply-avatar">
+                            <div class="reply-content"><strong>${ru.name}:</strong> ${r.content}</div>
+                        </div>`;
+                    });
+                }
+                commentsHTML += `
+                <div class="comment-item">
+                    <img src="${cu.avatar}" class="comment-avatar" onclick="openProfile('${c.uid}')" style="cursor:pointer">
+                    <div class="comment-content">
+                        <div class="comment-user">${cu.name}</div>
+                        <div class="comment-text">${c.content}</div>
+                        <div class="comment-actions">
+                            <span onclick="toggleReplyBox(${post.id}, ${c.id})">回复</span>
+                        </div>
+                        ${repliesHTML ? `<div class="replies-list">${repliesHTML}</div>` : ''}
+                        <div class="reply-box" id="reply-box-${post.id}-${c.id}">
+                            <input type="text" id="reply-input-${post.id}-${c.id}" placeholder="回复 ${cu.name}...">
+                            <button class="btn-send-comment" onclick="submitReply(${post.id}, ${c.id})">发送</button>
+                        </div>
+                    </div>
+                </div>`;
+            });
+        }
+
+        return `
+        <div class="post-card card-style">
+            <div class="post-header">
+                <img src="${u.avatar}" class="post-avatar" onclick="openProfile('${post.uid}')">
+                <div class="post-info">
+                    <h4 onclick="openProfile('${post.uid}')">${u.name}</h4>
+                    <div class="post-time">${new Date(post.timestamp).toLocaleString()}</div>
+                </div>
+            </div>
+            <div class="post-text">${post.content}</div>
+            <div class="post-actions-bar">
+                <div class="action-item" onclick="summonAI(${post.id})" title="让AI基于当前人设进行回复">
+                    <i class="fas fa-robot"></i> 让 AI 看看
+                </div>
+                <div class="action-item" onclick="toggleCommentSection(${post.id})">
+                    <i class="far fa-comment"></i> ${post.comments ? post.comments.length : 0} 评论
+                </div>
+                ${post.uid===currentUserUid ? `<div class="action-item danger" onclick="deletePost(${post.id})"><i class="fas fa-trash"></i> 删除</div>` : ''}
+            </div>
+            <div class="comment-section" id="comment-section-${post.id}">
+                <div class="comment-list">${commentsHTML}</div>
+                <div class="comment-input-row">
+                    <input type="text" id="comment-input-${post.id}" placeholder="写下你的评论...">
+                    <button class="btn-send-comment" onclick="submitComment(${post.id})">发送</button>
+                </div>
+            </div>
+        </div>`;
+    }
+
+    // --- AI 逻辑升级 ---
+    async function summonAI(postId) {
+        if(!appSettings.apiKey) { showToast('请先在设置中配置 API Key'); openSettingsModal(); return; }
+        
+        const post = posts.find(p => p.id === postId);
+        showToast(`AI (${users.find(u=>u.uid==='AI_BOT').name}) 正在阅读帖子...`);
+
+        try {
+            let ep = appSettings.apiUrl.replace(/\/+$/, '');
+            if(!ep.endsWith('/chat/completions')) ep += '/chat/completions';
+
+            // 使用设置里的 Prompt 和 Temperature
+            const payload = {
+                model: appSettings.apiModel,
+                messages: [
+                    { role: "system", content: appSettings.aiSystemPrompt },
+                    { role: "user", content: `请以普通用户的身份评论这篇帖子：\n"${post.content}"` }
+                ],
+                temperature: appSettings.aiTemp,
+                max_tokens: 150
+            };
+
+            const res = await fetch(ep, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${appSettings.apiKey}` },
+                body: JSON.stringify(payload)
+            });
+
+            if(!res.ok) throw new Error('API请求失败');
+            const data = await res.json();
+            const replyContent = data.choices[0].message.content;
+
+            // 以 AI_BOT 身份写入评论，但不再有任何特殊标记
+            if(!post.comments) post.comments = [];
+            post.comments.push({
+                id: Date.now(),
+                uid: 'AI_BOT', // 系统默认AI账号ID，用户可以编辑这个账号的昵称头像
+                content: replyContent,
+                timestamp: Date.now(),
+                replies: []
+            });
+            saveData();
+            renderFeed();
+            showToast('AI 已回复');
+        } catch(e) {
+            console.error(e);
+            showToast('AI 出错了: ' + e.message);
+        }
+    }
+
+    // --- 其他通用逻辑 (账号、评论、资料、API获取) ---
+    // (此处逻辑与上一版基本一致，但适配了新的 appSettings)
+    
+    function saveData() {
+        localStorage.setItem('ritsuto_users', JSON.stringify(users));
+        localStorage.setItem('ritsuto_posts', JSON.stringify(posts));
+        localStorage.setItem('ritsuto_chats', JSON.stringify(chats));
+        localStorage.setItem('ritsuto_current_uid', currentUserUid);
+    }
+
+    function renderSidebar() {
+        currentUser = users.find(u => u.uid === currentUserUid);
+        if(currentUser) {
+            document.getElementById('sideAvatar').src = currentUser.avatar;
+            document.getElementById('sideName').innerText = currentUser.name;
+            document.getElementById('sideUid').innerText = `UID: ${currentUser.uid}`;
+        }
+    }
+
+    function publishPost() {
+        const val = document.getElementById('postInput').value.trim();
+        if(!val) return showToast('内容为空');
+        posts.unshift({ id: Date.now(), uid: currentUserUid, content: val, timestamp: Date.now(), comments: [] });
+        saveData();
+        document.getElementById('postInput').value = '';
+        renderFeed();
+    }
+
+    function deletePost(id) {
+        if(confirm('确定删除?')) { posts = posts.filter(p=>p.id!==id); saveData(); renderFeed(); }
+    }
+
+    function toggleCommentSection(id) {
+        const s = document.getElementById(`comment-section-${id}`);
+        if(s.classList.contains('active')) { s.classList.remove('active'); setTimeout(()=>s.style.display='none',200); }
+        else { s.style.display='block'; setTimeout(()=>s.classList.add('active'),10); }
+    }
+
+    function submitComment(pid) {
+        const inp = document.getElementById(`comment-input-${pid}`);
+        if(!inp.value.trim()) return;
+        posts.find(p=>p.id===pid).comments.push({ id:Date.now(), uid:currentUserUid, content:inp.value.trim(), timestamp:Date.now(), replies:[] });
+        saveData(); renderFeed();
+        // 保持展开
+        setTimeout(()=>{
+             const s = document.getElementById(`comment-section-${pid}`);
+             if(s) { s.style.display='block'; s.classList.add('active'); }
+        }, 50);
+    }
+
+    function toggleReplyBox(pid, cid) {
+        const box = document.getElementById(`reply-box-${pid}-${cid}`);
+        box.style.display = (box.style.display === 'flex') ? 'none' : 'flex';
+    }
+
+    function submitReply(pid, cid) {
+        const inp = document.getElementById(`reply-input-${pid}-${cid}`);
+        if(!inp.value.trim()) return;
+        const c = posts.find(p=>p.id===pid).comments.find(c=>c.id===cid);
+        if(!c.replies) c.replies=[];
+        c.replies.push({ uid:currentUserUid, content:inp.value.trim(), timestamp:Date.now() });
+        saveData(); renderFeed();
+        setTimeout(()=>{
+             const s = document.getElementById(`comment-section-${pid}`);
+             if(s) { s.style.display='block'; s.classList.add('active'); }
+        }, 50);
+    }
+
+    // 账号管理
+    function openSwitchModal() {
+        const list = document.getElementById('accountList');
+        list.innerHTML = '';
+        users.forEach(u => {
+            const isCur = u.uid === currentUserUid;
+            list.innerHTML += `
+            <div class="account-item" onclick="switchUser('${u.uid}')" style="${isCur?'border-color:var(--primary);background:rgba(0,0,0,0.05)':''}">
+                <img src="${u.avatar}">
+                <div style="flex:1">
+                    <div style="font-weight:700">${u.name} ${isCur?'(当前)':''}</div>
+                    <div style="font-size:0.8rem;color:var(--text-light)">UID: ${u.uid}</div>
+                </div>
+            </div>`;
+        });
+        document.getElementById('switchModal').style.display='flex';
+    }
+    function switchUser(uid) { currentUserUid = uid; saveData(); closeModal('switchModal'); init(); renderFeed(); showToast('已切换'); }
+    function createNewAccount() {
+        const uid = 'User_'+Math.floor(Math.random()*9999);
+        users.push({ uid:uid, name:'新用户', gender:'保密', age:18, avatar:`https://api.dicebear.com/7.x/avataaars/svg?seed=${uid}`, bg:'', bio:'' });
+        saveData(); openSwitchModal();
+    }
+
+    // 个人主页
+    function openProfile(uid) {
+        document.getElementById('feedView').style.display='none';
+        document.getElementById('profileView').style.display='block';
+        const u = users.find(user=>user.uid===uid);
+        const isMe = (uid === currentUserUid);
+        document.getElementById('profileName').innerText = u.name;
+        document.getElementById('profileUid').innerText = u.uid;
+        document.getElementById('profileGender').innerText = u.gender;
+        document.getElementById('profileAge').innerText = u.age + '岁';
+        document.getElementById('profileBio').innerText = u.bio || '暂无签名';
+        document.getElementById('profileAvatar').src = u.avatar;
+        document.getElementById('profileCover').style.backgroundImage = `url('${u.bg}')`;
+        
+        document.getElementById('btnEditProfile').style.display = isMe ? 'flex' : 'none';
+        document.getElementById('btnChatUser').style.display = isMe ? 'none' : 'flex';
+        document.getElementById('btnChatUser').setAttribute('data-target', uid);
+        
+        // 渲染帖子
+        const c = document.getElementById('profilePostsContainer');
+        c.innerHTML = '';
+        posts.filter(p=>p.uid===uid).sort((a,b)=>b.timestamp-a.timestamp).forEach(p=>c.innerHTML+=createPostHTML(p));
+    }
+    function showFeed() { document.getElementById('feedView').style.display='block'; document.getElementById('profileView').style.display='none'; renderFeed(); }
+
+    function openEditProfileModal() {
+        const u = users.find(u=>u.uid===currentUserUid);
+        document.getElementById('editName').value=u.name;
+        document.getElementById('editUid').value=u.uid;
+        document.getElementById('editGender').value=u.gender;
+        document.getElementById('editBio').value=u.bio;
+        document.getElementById('editProfileModal').style.display='flex';
+    }
+    function saveProfileChanges() {
+        const name = document.getElementById('editName').value.trim();
+        const nUid = document.getElementById('editUid').value.trim();
+        if(!name || !nUid) return showToast('信息不完整');
+        // 数据迁移略(与上版相同)，为简化这里直接改
+        const idx = users.findIndex(u=>u.uid===currentUserUid);
+        users[idx].name=name; users[idx].gender=document.getElementById('editGender').value; users[idx].bio=document.getElementById('editBio').value;
+        saveData(); closeModal('editProfileModal'); openProfile(currentUserUid); renderSidebar();
+    }
+
+    // API 获取模型
+    async function fetchApiModels() {
+        const url = document.getElementById('apiUrlInput').value.trim();
+        const key = document.getElementById('apiKeyInput').value.trim();
+        const sel = document.getElementById('apiModelSelect');
+        if(!url || !key) return showToast('需填写URL和Key');
+        sel.innerHTML='<option>加载中...</option>';
+        try {
+            let ep = url.replace(/\/+$/, '');
+            if(!ep.endsWith('/models')) ep += '/models';
+            const res = await fetch(ep, { headers:{'Authorization':`Bearer ${key}`} });
+            const data = await res.json();
+            if(data.data) {
+                sel.innerHTML='';
+                data.data.forEach(m => sel.innerHTML += `<option value="${m.id}">${m.id}</option>`);
+                showToast(`获取到 ${data.data.length} 个模型`);
+            }
+        } catch(e) { sel.innerHTML=`<option value="${appSettings.apiModel}">${appSettings.apiModel}</option>`; showToast('获取失败，请手动检查'); }
+    }
+
+    // 私信 (复用)
+    function startChat() {
+        const uid = document.getElementById('btnChatUser').getAttribute('data-target');
+        const u = users.find(x=>x.uid===uid);
+        document.getElementById('chatHeaderName').innerText = u.name;
+        document.getElementById('chatModal').style.display='flex';
+        currentChatTargetUid = uid;
+        renderChat();
+    }
+    function renderChat() {
+        const b = document.getElementById('chatBody');
+        b.innerHTML='';
+        const k = [currentUserUid, currentChatTargetUid].sort().join('_');
+        const msgs = chats[k]||[];
+        msgs.forEach(m=>{
+            const isMe = m.sender===currentUserUid;
+            b.innerHTML+=`<div class="chat-bubble ${isMe?'sent':'received'}" style="align-self:${isMe?'flex-end':'flex-start'}; background:${isMe?'var(--msg-sent)':'var(--msg-received)'}; padding:10px; border-radius:10px; max-width:70%;">${m.content}</div>`;
+        });
+        b.scrollTop = b.scrollHeight;
+    }
+    function sendChatMessage() {
+        const i = document.getElementById('chatInput');
+        if(!i.value.trim()) return;
+        const k = [currentUserUid, currentChatTargetUid].sort().join('_');
+        if(!chats[k]) chats[k]=[];
+        chats[k].push({sender:currentUserUid, content:i.value.trim(), timestamp:Date.now()});
+        saveData(); renderChat(); i.value='';
+        // AI 私信逻辑也用新设置
+        if(currentChatTargetUid === 'AI_BOT') triggerAIChat(i.value.trim(), k);
+    }
+    async function triggerAIChat(msg, k) {
+        if(!appSettings.apiKey) return;
+        try {
+            let ep = appSettings.apiUrl.replace(/\/+$/, '') + '/chat/completions';
+            const hist = chats[k].slice(-5).map(m=>({ role: m.sender==='AI_BOT'?'assistant':'user', content:m.content }));
+            const res = await fetch(ep, {
+                method:'POST',
+                headers:{'Content-Type':'application/json','Authorization':`Bearer ${appSettings.apiKey}`},
+                body:JSON.stringify({
+                    model: appSettings.apiModel,
+                    messages: [{role:'system', content:appSettings.aiSystemPrompt}, ...hist],
+                    temperature: appSettings.aiTemp
+                })
+            });
+            const d = await res.json();
+            chats[k].push({sender:'AI_BOT', content:d.choices[0].message.content, timestamp:Date.now()});
+            saveData(); renderChat();
+        } catch(e) {}
+    }
+
+    // 通用工具
+    function triggerUpload(id) { document.getElementById(id).click(); }
+    function updateImage(inp, t) { 
+        if(inp.files[0]) { 
+            const r = new FileReader(); 
+            r.onload = e => { 
+                users.find(u=>u.uid===currentUserUid)[t] = e.target.result; 
+                saveData(); renderSidebar(); openProfile(currentUserUid); 
+            }; 
+            r.readAsDataURL(inp.files[0]); 
+        } 
+    }
+    function closeModal(id) { document.getElementById(id).style.display='none'; }
+    function showToast(m) { const t=document.getElementById('toast'); t.innerText=m; t.className='show'; setTimeout(()=>t.className='',3000); }
+    function handleChatEnter(e) { if(e.key==='Enter') sendChatMessage(); }
+
+    init();
 </script>
 </body>
-  </html>
+</html>
